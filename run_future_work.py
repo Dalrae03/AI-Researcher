@@ -1,18 +1,23 @@
 import argparse
 import asyncio
 import os
-from research_agent.run_infer_idea import InnoFlow
+from dotenv import load_dotenv 
+from research_agent.future_work.future_work_flow import FutureWorkFlow
 from research_agent.inno.environment.markdown_browser import RequestsMarkdownBrowser
- 
+
+
+load_dotenv()
+
  
 def get_args():
+    
     parser = argparse.ArgumentParser(description="Extract future work proposals from research papers")
-    
-    # nargs="+" → 공백으로 구분된 여러 제목을 리스트로 받음
-    # required=True → 필수 인자
     parser.add_argument("--papers", nargs="+", required=True, help="Paper titles (10-15 papers)")
-    
-    parser.add_argument("--model", type=str, default="gemini/gemini-2.5-pro-preview-05-20")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=os.environ.get("COMPLETION_MODEL", "gemini/gemini-2.5-pro")  # ← 변경
+    )
 
     # GitHub 검색 시 이 날짜 이후 생성된 레포지토리만 검색
     # 너무 오래된 구현은 제외하기 위해
@@ -40,10 +45,10 @@ def main():
         workplace_name=args.workplace_name,
         downloads_folder=os.path.join(local_root, args.workplace_name, "downloads"),
     )
-    flow = InnoFlow(
-        cache_path=args.cache_path,
-        model=args.model,
-        file_env=file_env,
+    flow = FutureWorkFlow(
+    cache_path=args.cache_path,
+    model=args.model,
+    file_env=file_env,
     )
     asyncio.run(flow(
         paper_titles=args.papers,

@@ -224,11 +224,25 @@ Please answer my question based on the content.
         msg = [{"role": "user", "content": [
             {"type": "text", "text": wrap_ques}
         ]}]
-        res = completion(model=COMPLETION_MODEL, messages=msg, base_url=API_BASE_URL)
-        answer = res.choices[0].message.content
-        return answer
-    except FileNotFoundError as e:
-        return f"Before ask a question on the whole page, you must use `open_local_file` to open a file first."
+
+
+        # 503 재시도 로직 추가
+        max_retries = 4
+        for attempt in range(max_retries):
+            try:
+                res = completion(model=COMPLETION_MODEL, messages=msg, base_url=API_BASE_URL)
+                return res.choices[0].message.content
+            except Exception as e:
+                err_str = str(e)
+                is_server_error = any(code in err_str for code in ["503", "ServiceUnavailable", "UNAVAILABLE", "529", "overloaded"])
+                if is_server_error and attempt < max_retries - 1:
+                    wait = 2 ** (attempt + 1)  # 2, 4, 8, 16초
+                    time.sleep(wait)
+                    continue
+                return f"Error in `question_answer_on_whole_page`: {e}"
+
+    except FileNotFoundError:
+        return "Before ask a question on the whole page, you must use `open_local_file` to open a file first."
     except Exception as e:
         return f"Error in `question_answer_on_whole_page`: {e}"
 
