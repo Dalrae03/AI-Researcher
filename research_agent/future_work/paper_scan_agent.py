@@ -34,14 +34,14 @@ WORKFLOW — for EACH paper:
    Example: open_local_file(path="workplace/papers/paper_title.tex")
    
 2. After opening, call `question_answer_on_whole_page` with ONLY a `question` argument.
-   IMPORTANT — .tex files begin with a LaTeX preamble (package imports, \newcommand, etc.)
+   IMPORTANT — .tex files begin with a LaTeX preamble (package imports, \\newcommand, etc.)
    The actual paper content starts much later. You MUST navigate past the preamble first:
    
-   Step A: Call find_on_page_ctrl_f(search_string="\\begin{abstract}")
+   Step A: Call find_on_page_ctrl_f(search_string="\\\\begin{{abstract}}")
            → This jumps directly to the abstract section
-   Step B: If Step A fails (not found), call find_on_page_ctrl_f(search_string="\\section{Introduction}")
+   Step B: If Step A fails (not found), call find_on_page_ctrl_f(search_string="\\\\section{{Introduction}}")
    Step C: If both fail, call page_down_markdown repeatedly until you see actual sentences
-           (not \\usepackage or \\newcommand lines)
+           (not \\\\usepackage or \\\\newcommand lines)
    
    Only AFTER reaching actual content, call question_answer_on_whole_page.
    The function reads from the current position automatically — do NOT pass a path.

@@ -115,8 +115,7 @@ Distribute proposals across different papers — do not focus on only one paper.
         
         arxiv_novelty_report = format_novelty_check_input(
                 future_works=draft_proposals,
-                llm_client=self.client,
-                model=CHEEP_MODEL,   # 키워드 추출은 저렴한 모델로도 충분
+                model=CHEEP_MODEL,   # 키워드 추출은 저렴한 모델
         )
 
 
@@ -140,15 +139,25 @@ Use these to judge whether each proposal is already being researched:
 [GitHub Search Results]
 {github_result}
 
-For each of the 5 proposals:
-1. Based on arxiv results: is this direction already actively researched?
-   - If yes → refine the gap to a more specific, unexplored angle
-   - If partially → note what sub-aspect remains unexplored
-   - If no → confirm as novel
-2. Based on GitHub results: is this already implemented?
-3. Add a **Novelty Assessment** note at the end of each proposal citing specific evidence.
 
-Output all 5 proposals in the same format with the added novelty assessment.
+For each proposal, apply these rules STRICTLY:
+
+NOVEL → Keep as-is. Add: **Novelty Assessment: CONFIRMED NOVEL**
+
+PARTIAL → Refine to a more specific unexplored angle.
+           Add: **Novelty Assessment: REFINED** + explain the differentiation.
+
+ALREADY DONE → DISCARD this proposal entirely.
+               Using ONLY the paper summaries below, find a completely NEW
+               research gap not covered by the other 4 proposals.
+               Add: **Novelty Assessment: REGENERATED** + explain why original
+               was discarded and how new topic was derived from papers.
+
+Paper summaries to use for regeneration:
+{paper_summaries}
+
+Output exactly 5 proposals in the same format.
+
 """
         refine_messages = [{"role": "user", "content": refine_query}]
         final_msgs, context_variables = await self.future_work_agent(

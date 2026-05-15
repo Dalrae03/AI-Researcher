@@ -199,8 +199,11 @@ def question_answer_on_whole_page(env: RequestsMarkdownBrowser, question: str) -
     Ask a question on the whole page and return the answer.
     """
     try: 
-
         retrieved_content = env.retrieve_on_page(question)
+        if "not available" in retrieved_content or not retrieved_content.strip():
+            full = env.page_content
+            retrieved_content = full[:6000] if len(full) > 6000 else full
+
         mathnote = r"""\
 Note that if you need to write mathematical formulas in your answer:
 1. DO NOT use any custom \newcommand shortcuts from the paper

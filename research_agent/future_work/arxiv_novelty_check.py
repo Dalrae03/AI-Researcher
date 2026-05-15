@@ -5,14 +5,16 @@
 import re
 import requests
 import arxiv
+from litellm import completion
+from research_agent.constant import API_BASE_URL
 from typing import List, Dict
 
 
-def extract_keywords_for_search(future_work_text: str, llm_client, model: str) -> List[str]:
+def extract_keywords_for_search(future_work_text: str, model: str) -> List[str]:
     """
     LLM을 사용해서 퓨쳐워크 제안 텍스트에서 arxiv 검색용 키워드 추출.
     """
-    response = llm_client.chat.completions.create(
+    response = completion(
         model=model,
         messages=[{
             "role": "user",
@@ -25,7 +27,8 @@ Future work proposal:
 {future_work_text}
 
 Return only the Python list, nothing else."""
-        }]
+        }],
+        base_url=API_BASE_URL,
     )
     raw = response.choices[0].message.content.strip()
     try:
@@ -62,7 +65,6 @@ def search_arxiv_abstracts(keywords: List[str], max_results: int = 8) -> List[Di
 
 def format_novelty_check_input(
     future_works: List[str],
-    llm_client,
     model: str,
 ) -> str:
     """
@@ -72,7 +74,7 @@ def format_novelty_check_input(
     report_parts = []
 
     for i, fw_text in enumerate(future_works, 1):
-        keywords = extract_keywords_for_search(fw_text, llm_client, model)
+        keywords = extract_keywords_for_search(fw_text, model)
         arxiv_results = search_arxiv_abstracts(keywords, max_results=8)
 
         section = f"=== Novelty Check for Future Work Idea {i} ===\n"
