@@ -109,10 +109,27 @@ Distribute proposals across different papers — do not focus on only one paper.
 
 
         # [3.5단계] arxiv novelty check — abstract만 검색, 전체 읽기 없음
+        import json
         from research_agent.future_work.arxiv_novelty_check import format_novelty_check_input
-        # future_work_agent 출력을 5개로 분리 (간단히 \n---\n 기준으로 split)
-        draft_proposals = [p.strip() for p in draft_future_works.split("---") if p.strip()]
         
+        # 모델이 ```json ... ``` 코드 펜스로 감싸는 경우 제거
+        draft_text = draft_future_works.strip()
+        if "```" in draft_text:
+            draft_text = draft_text.split("```")[1]      # ``` 와 ``` 사이 내용
+            if "\n" in draft_text:
+                draft_text = draft_text.split("\n", 1)[1]  # 첫 줄(언어 식별자) 제거
+            draft_text = draft_text.strip()
+            
+        # JSON 출력에서 각 제안의 텍스트를 추출하여 키워드 검색에 사용
+        try:
+            draft_json = json.loads(draft_text)
+            draft_proposals = [
+                f"{p['background_and_gap']}\n\n{p['proposed_direction']}"
+                for p in draft_json["future_work_proposals"]
+            ]
+        except (json.JSONDecodeError, KeyError):
+            draft_proposals = [draft_future_works]
+
         arxiv_novelty_report = format_novelty_check_input(
                 future_works=draft_proposals,
                 model=CHEEP_MODEL,   # 키워드 추출은 저렴한 모델
@@ -128,7 +145,7 @@ Distribute proposals across different papers — do not focus on only one paper.
 
         # [5단계] GitHub 결과 반영 → 최종 정제
         refine_query = f"""\
-You previously generated 5 future work proposals:
+You previously generated 5 future work proposals in JSON format:
 {draft_future_works}
 
 [Arxiv Novelty Check Results]
@@ -142,21 +159,22 @@ Use these to judge whether each proposal is already being researched:
 
 For each proposal, apply these rules STRICTLY:
 
-NOVEL → Keep as-is. Add: **Novelty Assessment: CONFIRMED NOVEL**
+NOVEL → Keep as-is. Set "novelty_assessment": "CONFIRMED NOVEL", "novelty_note": brief reason.
 
-PARTIAL → Refine to a more specific unexplored angle.
-           Add: **Novelty Assessment: REFINED** + explain the differentiation.
+PARTIAL → Refine background_and_gap and proposed_direction to a more specific unexplored angle.
+           Set "novelty_assessment": "REFINED", "novelty_note": explain the differentiation.
 
 ALREADY DONE → DISCARD this proposal entirely.
-               Using ONLY the paper summaries below, find a completely NEW
-               research gap not covered by the other 4 proposals.
-               Add: **Novelty Assessment: REGENERATED** + explain why original
-               was discarded and how new topic was derived from papers.
+               Using ONLY the paper summaries below, find a completely NEW research gap
+               not covered by the other 4 proposals. Replace all fields with the new proposal.
+               Set "novelty_assessment": "REGENERATED", "novelty_note": explain why original
 
 Paper summaries to use for regeneration:
 {paper_summaries}
 
-Output exactly 5 proposals in the same format.
+Output ONLY a valid JSON object with exactly 5 proposals, adding "novelty_assessment" and
+"novelty_note" fields to each entry. Keep all other fields from the original schema.
+No markdown, no code fences — raw JSON only.
 
 """
         refine_messages = [{"role": "user", "content": refine_query}]

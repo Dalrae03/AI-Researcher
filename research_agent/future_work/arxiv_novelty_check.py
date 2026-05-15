@@ -31,6 +31,11 @@ Return only the Python list, nothing else."""
         base_url=API_BASE_URL,
     )
     raw = response.choices[0].message.content.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]          # ``` 와 ``` 사이 내용
+        if "\n" in raw:
+            raw = raw.split("\n", 1)[1]    # 첫 줄(언어 식별자) 제거
+        raw = raw.strip()
     try:
         keywords = eval(raw)
         if isinstance(keywords, list):
